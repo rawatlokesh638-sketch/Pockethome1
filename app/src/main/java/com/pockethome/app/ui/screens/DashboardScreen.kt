@@ -69,7 +69,8 @@ fun DashboardScreen(
     onOpenSavingsGoalsClick: () -> Unit = {},
     onOpenNotificationsClick: () -> Unit = {},
     onOpenGamificationClick: () -> Unit = {},
-    onOpenOverviewClick: () -> Unit = {}
+    onOpenOverviewClick: () -> Unit = {},
+    onOpenAxioSmsSyncClick: () -> Unit = {}
 ) {
     var selectedTimePeriod by remember { mutableStateOf("This Month") }
 
@@ -236,6 +237,45 @@ fun DashboardScreen(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // SMS Auto-Sync Quick Card
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Color(0xFF4F46E5),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onOpenAxioSmsSyncClick() }
+                    .testTag("dashboard_sms_sync_banner")
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "⚡", fontSize = 20.sp)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Auto-Sync Bank SMS & Axio Features 📱",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            color = Color.White
+                        )
+                        Text(
+                            text = "Aaj tak aur real-time aage aane wali saari bank SMS transactions sync karein",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.85f),
+                            fontSize = 11.sp
+                        )
+                    }
+                    Text(
+                        text = "Sync ➔",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Color.White
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
         }
 

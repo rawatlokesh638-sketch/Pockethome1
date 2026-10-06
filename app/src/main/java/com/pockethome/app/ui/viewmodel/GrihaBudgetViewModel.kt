@@ -26,6 +26,7 @@ import com.pockethome.app.data.model.SmartNotificationItem
 import com.pockethome.app.data.model.GamificationBadge
 import com.pockethome.app.data.model.SpendingChallenge
 import com.pockethome.app.data.model.GamificationData
+import com.pockethome.app.data.model.UtrPaymentRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 
 data class CategoryBreakdown(
@@ -64,7 +65,8 @@ data class GrihaUiState(
     val gamification: GamificationData = GamificationData(),
     val financialOverview: AdvancedFinancialOverview = AdvancedFinancialOverview(),
     val isOfflineMode: Boolean = false,
-    val pendingOfflineSyncCount: Int = 0
+    val pendingOfflineSyncCount: Int = 0,
+    val paymentRequests: List<UtrPaymentRequest> = emptyList()
 )
 
 private data class ExtraViewModelState(
@@ -77,15 +79,6 @@ private data class ExtraViewModelState(
 class GrihaBudgetViewModel(
     private val repository: FirebaseRepository = FirebaseRepository()
 ) : ViewModel() {
-
-    private val _savingsGoals = MutableStateFlow<List<SavingsGoal>>(
-        listOf(
-            SavingsGoal("1", "New Phone", "📱", 20000.0, 12000.0, "Dec 2026", 2000.0, false, "#3B82F6"),
-            SavingsGoal("2", "Bike", "🏍️", 80000.0, 45000.0, "Feb 2027", 7000.0, false, "#F59E0B"),
-            SavingsGoal("3", "Vacation", "✈️", 30000.0, 30000.0, "Oct 2026", 0.0, true, "#10B981"),
-            SavingsGoal("4", "Home Down Payment", "🏠", 500000.0, 180000.0, "Dec 2028", 15000.0, false, "#8B5CF6")
-        )
-    )
 
     private val _emiLoans = MutableStateFlow<List<EmiLoanItem>>(
         listOf(
@@ -330,12 +323,27 @@ class GrihaBudgetViewModel(
             initialValue = emptyList()
         )
 
+    val paymentRequests: StateFlow<List<UtrPaymentRequest>> = repository.paymentRequestsFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    val savingsGoals: StateFlow<List<SavingsGoal>> = repository.savingsGoalsFlow
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
     private val baseDataFlow = combine(
         userProfile,
         transactions,
         bills,
-        categoryBudgets
-    ) { profile, txList, billList, catBudgetList ->
+        categoryBudgets,
+        paymentRequests
+    ) { profile, txList, billList, catBudgetList, payReqs ->
         val expenses = txList.filter { it.type == TransactionType.EXPENSE.name }
         val income = txList.filter { it.type == TransactionType.INCOME.name }
 
@@ -359,14 +367,15 @@ class GrihaBudgetViewModel(
             categoryBudgets = catBudgetList,
             totalExpenses = totalExpenses,
             totalIncome = totalIncome,
-            todayExpenses = if (todayExpenses > 0) todayExpenses else 320.0,
+            todayExpenses = todayExpenses,
             monthlyBudget = profile.monthlyBudget,
-            categoryBreakdowns = breakdownList
+            categoryBreakdowns = breakdownList,
+            paymentRequests = payReqs
         )
     }
 
     private val extraStateFlow = combine(
-        _savingsGoals,
+        savingsGoals,
         _emiLoans,
         _notifications,
         _gamification
@@ -422,6 +431,10 @@ class GrihaBudgetViewModel(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = GrihaUiState()
     )
+
+    fun addTransaction(item: TransactionItem) {
+        repository.addTransaction(item)
+    }
 
     fun addTransaction(
         title: String,
@@ -548,37 +561,6 @@ class GrihaBudgetViewModel(
 
     fun logoutAllDevices() {
         repository.logoutAllDevices()
-    }
-
-    fun addSavingsGoal(title: String, emoji: String, targetAmount: Double, targetDateString: String, monthlyTarget: Double, colorHex: String) {
-        val newGoal = SavingsGoal(
-            id = System.currentTimeMillis().toString(),
-            title = title,
-            emoji = emoji,
-            targetAmount = targetAmount,
-            currentSaved = 0.0,
-            targetDateString = targetDateString,
-            monthlyTarget = monthlyTarget,
-            isCompleted = false,
-            colorHex = colorHex
-        )
-        _savingsGoals.value = _savingsGoals.value + newGoal
-    }
-
-    fun depositToSavingsGoal(goalId: String, amount: Double) {
-        _savingsGoals.value = _savingsGoals.value.map { goal ->
-            if (goal.id == goalId) {
-                val newSaved = goal.currentSaved + amount
-                val completed = newSaved >= goal.targetAmount
-                goal.copy(currentSaved = newSaved, isCompleted = completed)
-            } else {
-                goal
-            }
-        }
-    }
-
-    fun deleteSavingsGoal(goalId: String) {
-        _savingsGoals.value = _savingsGoals.value.filter { it.id != goalId }
     }
 
     fun toggleOfflineMode(enabled: Boolean) {
@@ -787,5 +769,50 @@ class GrihaBudgetViewModel(
 
     fun signOut() {
         repository.signOut()
+    }
+
+    fun submitUtrPaymentRequest(
+        utrNumber: String,
+        transactionRef: String,
+        planTier: String,
+        amount: Double,
+        onResult: (Boolean, String?) -> Unit
+    ) {
+        repository.submitUtrPaymentRequest(utrNumber, transactionRef, planTier, amount, onResult)
+    }
+
+    fun approveUtrPaymentRequest(
+        request: UtrPaymentRequest,
+        onResult: (Boolean, String?) -> Unit
+    ) {
+        repository.approveUtrPaymentRequest(request, onResult)
+    }
+
+    fun rejectUtrPaymentRequest(
+        requestId: String,
+        userId: String,
+        onResult: (Boolean, String?) -> Unit
+    ) {
+        repository.rejectUtrPaymentRequest(requestId, userId, onResult)
+    }
+
+    fun addSavingsGoal(goal: SavingsGoal) {
+        repository.addSavingsGoal(goal)
+    }
+
+    fun updateSavingsGoal(goal: SavingsGoal) {
+        repository.updateSavingsGoal(goal)
+    }
+
+    fun deleteSavingsGoal(goalId: String) {
+        repository.deleteSavingsGoal(goalId)
+    }
+
+    fun togglePauseSavingsGoal(goalId: String) {
+        repository.togglePauseSavingsGoal(goalId)
+    }
+
+    fun addMoneyToSavingsGoal(goalId: String, amount: Double) {
+        repository.addMoneyToSavingsGoal(goalId, amount)
     }
 }

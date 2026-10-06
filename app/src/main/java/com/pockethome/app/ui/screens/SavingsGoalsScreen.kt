@@ -60,7 +60,7 @@ import com.pockethome.app.ui.viewmodel.GrihaUiState
 fun SavingsGoalsScreen(
     state: GrihaUiState,
     onBackClick: () -> Unit,
-    onAddGoalClick: (title: String, emoji: String, targetAmount: Double, targetDate: String, monthlyTarget: Double, colorHex: String) -> Unit,
+    onAddGoalClick: (goal: SavingsGoal) -> Unit,
     onDepositClick: (goalId: String, amount: Double) -> Unit,
     onDeleteGoalClick: (goalId: String) -> Unit
 ) {
@@ -485,14 +485,20 @@ fun SavingsGoalsScreen(
                     onClick = {
                         val amt = goalAmount.toDoubleOrNull() ?: 25000.0
                         val monthly = goalMonthlyTarget.toDoubleOrNull() ?: 2500.0
-                        onAddGoalClick(
-                            goalTitle.ifBlank { "My Goal" },
-                            goalEmoji,
-                            amt,
-                            goalTargetDate.ifBlank { "Dec 2026" },
-                            monthly,
-                            goalColorHex
+                        val newGoal = SavingsGoal(
+                            id = "goal_${System.currentTimeMillis()}",
+                            title = goalTitle.ifBlank { "My Goal" },
+                            category = "Custom Goal",
+                            emoji = goalEmoji,
+                            targetAmount = amt,
+                            currentSaved = 0.0,
+                            targetDateString = goalTargetDate.ifBlank { "Dec 2026" },
+                            monthlyTarget = monthly,
+                            strategy = "Moderate",
+                            investmentType = "SIP",
+                            colorHex = goalColorHex
                         )
+                        onAddGoalClick(newGoal)
                         showCreateDialog = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4F46E5))

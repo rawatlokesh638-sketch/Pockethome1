@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.FamilyRestroom
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Palette
@@ -91,7 +92,8 @@ fun SettingsScreen(
     onOpenProUpgradeClick: () -> Unit = {},
     onOpenOverviewClick: () -> Unit = {},
     onOpenNotificationsClick: () -> Unit = {},
-    onOpenGamificationClick: () -> Unit = {}
+    onOpenGamificationClick: () -> Unit = {},
+    onOpenAxioSmsSyncClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var showAboutDialog by remember { mutableStateOf(false) }
@@ -450,6 +452,20 @@ fun SettingsScreen(
                     badge = "${state.gamification.financialScore}/100",
                     badgeColor = Color(0xFFF59E0B),
                     testTag = "settings_gamification_btn"
+                )
+            }
+
+            // SMS Auto-Sync & Axio Plan
+            item {
+                SettingsActionTile(
+                    title = "SMS Auto-Sync & Axio Plan ⚡",
+                    subtitle = "Scan bank SMS, auto-sync transactions & learn Axio features",
+                    icon = Icons.Default.Message,
+                    iconTint = Color(0xFF4F46E5),
+                    onClick = onOpenAxioSmsSyncClick,
+                    badge = "Auto-Sync",
+                    badgeColor = Color(0xFF4F46E5),
+                    testTag = "settings_axio_sms_btn"
                 )
             }
 

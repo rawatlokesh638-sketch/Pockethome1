@@ -155,12 +155,18 @@ data class CategoryBudget(
 data class SavingsGoal(
     val id: String = "",
     val title: String = "",
+    val category: String = "Custom Goal",
     val emoji: String = "🎯",
     val targetAmount: Double = 0.0,
     val currentSaved: Double = 0.0,
     val targetDateString: String = "Dec 2026",
     val monthlyTarget: Double = 0.0,
+    val strategy: String = "Moderate", // Conservative, Moderate, Aggressive
+    val investmentType: String = "SIP", // SIP, RD, FD, Gold SGB, Savings Account
+    val isPaused: Boolean = false,
     val isCompleted: Boolean = false,
+    val notes: String = "",
+    val autoSaveReminder: Boolean = true,
     val colorHex: String = "#4F46E5"
 )
 
@@ -257,4 +263,19 @@ data class GamificationData(
     val scoreGrade: String = "EXCELLENT",
     val activeChallenges: List<SpendingChallenge> = emptyList(),
     val badges: List<GamificationBadge> = emptyList()
+)
+
+data class UtrPaymentRequest(
+    val requestId: String = "",
+    val userId: String = "",
+    val userName: String = "",
+    val userEmail: String = "",
+    val phonePeNumber: String = "9050884894",
+    val utrNumber: String = "",
+    val transactionRef: String = "",
+    val planTier: String = "PRO_MONTHLY", // PRO_MONTHLY (₹199) or PRO_ANNUAL (₹1499)
+    val amount: Double = 199.0,
+    val timestamp: Long = System.currentTimeMillis(),
+    val status: String = "PENDING", // PENDING, APPROVED, REJECTED
+    val adminNote: String = ""
 )

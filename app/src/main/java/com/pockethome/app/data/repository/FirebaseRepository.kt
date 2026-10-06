@@ -12,9 +12,11 @@ import com.pockethome.app.data.model.BillItem
 import com.pockethome.app.data.model.CategoryBudget
 import com.pockethome.app.data.model.ExpenseCategory
 import com.pockethome.app.data.model.PaymentMethod
+import com.pockethome.app.data.model.SavingsGoal
 import com.pockethome.app.data.model.TransactionItem
 import com.pockethome.app.data.model.TransactionType
 import com.pockethome.app.data.model.UserProfile
+import com.pockethome.app.data.model.UtrPaymentRequest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -51,49 +53,28 @@ class FirebaseRepository {
 
     private val TAG = "FirebaseRepository"
 
-    // Default screenshot initial values
-    private val defaultInitTransactions = listOf(
-        TransactionItem("tx1", "Groceries", 6400.0, ExpenseCategory.GROCERIES.displayName, TransactionType.EXPENSE.name, "4 Oct 2026", System.currentTimeMillis() - 1000, "Rashan & daily items", PaymentMethod.UPI.displayName),
-        TransactionItem("tx2", "Bills & Utilities", 3350.0, ExpenseCategory.BILLS.displayName, TransactionType.EXPENSE.name, "4 Oct 2026", System.currentTimeMillis() - 2000, "Electricity & wifi", PaymentMethod.NET_BANKING.displayName),
-        TransactionItem("tx3", "Food & Dining", 2250.0, ExpenseCategory.FOOD.displayName, TransactionType.EXPENSE.name, "4 Oct 2026", System.currentTimeMillis() - 3000, "Dinner with family", PaymentMethod.CREDIT_CARD.displayName),
-        TransactionItem("tx4", "Transport", 1850.0, ExpenseCategory.TRANSPORT.displayName, TransactionType.EXPENSE.name, "4 Oct 2026", System.currentTimeMillis() - 4000, "Petrol refill", PaymentMethod.UPI.displayName),
-        TransactionItem("tx5", "Health & Medical", 1500.0, ExpenseCategory.HEALTH.displayName, TransactionType.EXPENSE.name, "4 Oct 2026", System.currentTimeMillis() - 5000, "Medicine checkup", PaymentMethod.CASH.displayName),
-        TransactionItem("tx6", "Others", 3400.0, ExpenseCategory.OTHERS.displayName, TransactionType.EXPENSE.name, "4 Oct 2026", System.currentTimeMillis() - 6000, "Household items", PaymentMethod.UPI.displayName),
-        TransactionItem("inc1", "Monthly Salary", 35000.0, "Salary", TransactionType.INCOME.name, "1 Oct 2026", System.currentTimeMillis() - 8000, "Primary job salary", PaymentMethod.NET_BANKING.displayName, isRecurring = true),
-        TransactionItem("inc2", "Freelance Payout", 8500.0, "Freelance", TransactionType.INCOME.name, "3 Oct 2026", System.currentTimeMillis() - 7000, "Client project payout", PaymentMethod.UPI.displayName, isRecurring = false),
-        TransactionItem("inc3", "Tenant Rent Received", 12000.0, "Rental Income", TransactionType.INCOME.name, "2 Oct 2026", System.currentTimeMillis() - 7500, "Monthly apartment rent", PaymentMethod.NET_BANKING.displayName, isRecurring = true)
-    )
-
-    private val defaultInitBills = listOf(
-        BillItem("b1", "Electricity Bill", 1200.0, "10 Oct 2026", "Due in 6 days", ExpenseCategory.BILLS.displayName, false, "electricity"),
-        BillItem("b2", "Internet Bill", 799.0, "12 Oct 2026", "Due in 8 days", ExpenseCategory.BILLS.displayName, false, "wifi"),
-        BillItem("b3", "Mobile Recharge", 299.0, "15 Oct 2026", "Due in 11 days", ExpenseCategory.BILLS.displayName, false, "phone"),
-        BillItem("b4", "Gas Cylinder", 1100.0, "20 Oct 2026", "Due in 16 days", ExpenseCategory.BILLS.displayName, false, "gas"),
-        BillItem("b5", "Water Bill", 450.0, "25 Oct 2026", "Due in 21 days", ExpenseCategory.BILLS.displayName, false, "water")
-    )
-
-    private val defaultInitBudgets = listOf(
-        CategoryBudget(ExpenseCategory.GROCERIES.displayName, 8000.0),
-        CategoryBudget(ExpenseCategory.BILLS.displayName, 5000.0),
-        CategoryBudget(ExpenseCategory.FOOD.displayName, 3000.0),
-        CategoryBudget(ExpenseCategory.TRANSPORT.displayName, 2500.0),
-        CategoryBudget(ExpenseCategory.HEALTH.displayName, 2000.0),
-        CategoryBudget(ExpenseCategory.SHOPPING.displayName, 2500.0),
-        CategoryBudget(ExpenseCategory.EDUCATION.displayName, 2000.0),
-        CategoryBudget(ExpenseCategory.OTHERS.displayName, 4000.0)
-    )
+    // Clean initial values - 100% real Firebase RTDB
+    private val defaultInitTransactions = emptyList<TransactionItem>()
+    private val defaultInitBills = emptyList<BillItem>()
+    private val defaultInitBudgets = emptyList<CategoryBudget>()
 
     private val _userProfile = MutableStateFlow(UserProfile(name = "Lokesh", monthlyBudget = 25000.0))
     val userProfileFlow: Flow<UserProfile> = _userProfile.asStateFlow()
 
-    private val _transactions = MutableStateFlow<List<TransactionItem>>(defaultInitTransactions)
+    private val _transactions = MutableStateFlow<List<TransactionItem>>(emptyList())
     val transactionsFlow: Flow<List<TransactionItem>> = _transactions.asStateFlow()
 
-    private val _bills = MutableStateFlow<List<BillItem>>(defaultInitBills)
+    private val _bills = MutableStateFlow<List<BillItem>>(emptyList())
     val billsFlow: Flow<List<BillItem>> = _bills.asStateFlow()
 
-    private val _categoryBudgets = MutableStateFlow<List<CategoryBudget>>(defaultInitBudgets)
+    private val _categoryBudgets = MutableStateFlow<List<CategoryBudget>>(emptyList())
     val categoryBudgetsFlow: Flow<List<CategoryBudget>> = _categoryBudgets.asStateFlow()
+
+    private val _paymentRequests = MutableStateFlow<List<UtrPaymentRequest>>(emptyList())
+    val paymentRequestsFlow: Flow<List<UtrPaymentRequest>> = _paymentRequests.asStateFlow()
+
+    private val _savingsGoals = MutableStateFlow<List<SavingsGoal>>(emptyList())
+    val savingsGoalsFlow: Flow<List<SavingsGoal>> = _savingsGoals.asStateFlow()
 
     private var activeListenersAttached = false
 
@@ -168,10 +149,7 @@ class FirebaseRepository {
         ref.child("transactions").addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (!snapshot.exists()) {
-                    // Seed initial screenshot dataset to Firebase
-                    for (tx in defaultInitTransactions) {
-                        ref.child("transactions").child(tx.id).setValue(tx)
-                    }
+                    _transactions.value = emptyList()
                 } else {
                     val list = mutableListOf<TransactionItem>()
                     for (child in snapshot.children) {
@@ -191,9 +169,7 @@ class FirebaseRepository {
         ref.child("bills").addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (!snapshot.exists()) {
-                    for (b in defaultInitBills) {
-                        ref.child("bills").child(b.id).setValue(b)
-                    }
+                    _bills.value = emptyList()
                 } else {
                     val list = mutableListOf<BillItem>()
                     for (child in snapshot.children) {
@@ -212,9 +188,7 @@ class FirebaseRepository {
         ref.child("categoryBudgets").addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 if (!snapshot.exists()) {
-                    for (cb in defaultInitBudgets) {
-                        ref.child("categoryBudgets").child(cb.categoryName.replace("/", "_")).setValue(cb)
-                    }
+                    _categoryBudgets.value = emptyList()
                 } else {
                     val list = mutableListOf<CategoryBudget>()
                     for (child in snapshot.children) {
@@ -226,6 +200,53 @@ class FirebaseRepository {
 
             override fun onCancelled(error: DatabaseError) {
                 Log.w(TAG, "Category budgets snapshot cancelled: ${error.message}")
+            }
+        })
+
+        // Global Payment Requests listener (for Admin & User updates)
+        db.getReference("payment_requests").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val list = mutableListOf<UtrPaymentRequest>()
+                for (child in snapshot.children) {
+                    child.getValue(UtrPaymentRequest::class.java)?.let { req ->
+                        list.add(req)
+                        // If this payment request is for the current user and was APPROVED by Admin, unlock PRO!
+                        if (req.userId == getUserId() && req.status == "APPROVED" && !_userProfile.value.isProUser) {
+                            val updated = _userProfile.value.copy(
+                                isProUser = true,
+                                subscriptionTier = req.planTier,
+                                proExpiryDate = "Oct 2027"
+                            )
+                            _userProfile.value = updated
+                            ref.child("profile").setValue(updated)
+                        }
+                    }
+                }
+                list.sortByDescending { it.timestamp }
+                _paymentRequests.value = list
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.w(TAG, "Payment requests snapshot cancelled: ${error.message}")
+            }
+        })
+
+        // Savings Goals listener
+        ref.child("savingsGoals").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                if (!snapshot.exists()) {
+                    _savingsGoals.value = emptyList()
+                } else {
+                    val list = mutableListOf<SavingsGoal>()
+                    for (child in snapshot.children) {
+                        child.getValue(SavingsGoal::class.java)?.let { list.add(it) }
+                    }
+                    _savingsGoals.value = list
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.w(TAG, "Savings goals snapshot cancelled: ${error.message}")
             }
         })
     }
@@ -501,5 +522,111 @@ class FirebaseRepository {
 
     fun logoutAllDevices() {
         signOut()
+    }
+
+    fun submitUtrPaymentRequest(
+        utrNumber: String,
+        transactionRef: String,
+        planTier: String,
+        amount: Double,
+        onResult: (Boolean, String?) -> Unit
+    ) {
+        val user = currentUser
+        val reqId = "req_${System.currentTimeMillis()}"
+        val request = UtrPaymentRequest(
+            requestId = reqId,
+            userId = user?.uid ?: getUserId(),
+            userName = _userProfile.value.name,
+            userEmail = user?.email ?: _userProfile.value.email,
+            phonePeNumber = "9050884894",
+            utrNumber = utrNumber.trim(),
+            transactionRef = transactionRef.trim(),
+            planTier = planTier,
+            amount = amount,
+            timestamp = System.currentTimeMillis(),
+            status = "PENDING"
+        )
+
+        db.getReference("payment_requests").child(reqId).setValue(request)
+            .addOnSuccessListener {
+                getUserRef()?.child("payment_requests")?.child(reqId)?.setValue(request)
+                onResult(true, null)
+            }
+            .addOnFailureListener {
+                onResult(false, it.localizedMessage)
+            }
+    }
+
+    fun approveUtrPaymentRequest(
+        request: UtrPaymentRequest,
+        onResult: (Boolean, String?) -> Unit
+    ) {
+        val reqRef = db.getReference("payment_requests").child(request.requestId)
+        val userRef = db.getReference("users").child(request.userId)
+
+        reqRef.child("status").setValue("APPROVED")
+        userRef.child("payment_requests").child(request.requestId).child("status").setValue("APPROVED")
+
+        val updates = mapOf<String, Any>(
+            "isProUser" to true,
+            "subscriptionTier" to request.planTier,
+            "proExpiryDate" to "Oct 2027"
+        )
+
+        userRef.child("profile").updateChildren(updates).addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                if (request.userId == getUserId()) {
+                    _userProfile.value = _userProfile.value.copy(
+                        isProUser = true,
+                        subscriptionTier = request.planTier,
+                        proExpiryDate = "Oct 2027"
+                    )
+                }
+                onResult(true, null)
+            } else {
+                onResult(false, task.exception?.localizedMessage)
+            }
+        }
+    }
+
+    fun rejectUtrPaymentRequest(requestId: String, userId: String, onResult: (Boolean, String?) -> Unit) {
+        db.getReference("payment_requests").child(requestId).child("status").setValue("REJECTED")
+        db.getReference("users").child(userId).child("payment_requests").child(requestId).child("status").setValue("REJECTED")
+            .addOnCompleteListener {
+                onResult(it.isSuccessful, null)
+            }
+    }
+
+    fun addSavingsGoal(goal: SavingsGoal) {
+        val ref = getUserRef() ?: return
+        val goalId = if (goal.id.isBlank()) "goal_${System.currentTimeMillis()}" else goal.id
+        val finalGoal = goal.copy(id = goalId)
+        ref.child("savingsGoals").child(goalId).setValue(finalGoal)
+    }
+
+    fun updateSavingsGoal(goal: SavingsGoal) {
+        val ref = getUserRef() ?: return
+        if (goal.id.isNotBlank()) {
+            ref.child("savingsGoals").child(goal.id).setValue(goal)
+        }
+    }
+
+    fun deleteSavingsGoal(goalId: String) {
+        val ref = getUserRef() ?: return
+        ref.child("savingsGoals").child(goalId).removeValue()
+    }
+
+    fun togglePauseSavingsGoal(goalId: String) {
+        val current = _savingsGoals.value.find { it.id == goalId } ?: return
+        val updated = current.copy(isPaused = !current.isPaused)
+        updateSavingsGoal(updated)
+    }
+
+    fun addMoneyToSavingsGoal(goalId: String, amount: Double) {
+        val current = _savingsGoals.value.find { it.id == goalId } ?: return
+        val newSaved = current.currentSaved + amount
+        val isDone = newSaved >= current.targetAmount
+        val updated = current.copy(currentSaved = newSaved, isCompleted = isDone)
+        updateSavingsGoal(updated)
     }
 }

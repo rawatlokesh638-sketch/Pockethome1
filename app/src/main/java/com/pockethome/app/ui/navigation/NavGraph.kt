@@ -8,11 +8,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.PieChart
@@ -40,7 +42,9 @@ import androidx.compose.ui.unit.sp
 import com.pockethome.app.data.model.TransactionType
 import com.pockethome.app.ui.components.AppLockOverlay
 import com.pockethome.app.ui.screens.AddExpenseScreen
+import com.pockethome.app.ui.screens.AiMoneyAdvisorScreen
 import com.pockethome.app.ui.screens.AuthScreen
+import com.pockethome.app.ui.screens.AxioSmsSyncScreen
 import com.pockethome.app.ui.screens.BillsScreen
 import com.pockethome.app.ui.screens.BudgetScreen
 import com.pockethome.app.ui.screens.CalendarScreen
@@ -60,6 +64,7 @@ import com.pockethome.app.ui.screens.SavingsGoalsScreen
 import com.pockethome.app.ui.screens.SettingsScreen
 import com.pockethome.app.ui.screens.SmartNotificationsScreen
 import com.pockethome.app.ui.screens.TransactionsScreen
+import com.pockethome.app.ui.screens.UserProfileScreen
 import com.pockethome.app.ui.screens.WelcomeAuthScreen
 import com.pockethome.app.ui.viewmodel.GrihaBudgetViewModel
 import com.pockethome.app.ui.viewmodel.GrihaUiState
@@ -73,8 +78,8 @@ enum class BottomTab(
 ) {
     HOME("home", "Home", Icons.Filled.Home, Icons.Outlined.Home, "nav_home"),
     TRANSACTIONS("transactions", "Transactions", Icons.Filled.AccountBalanceWallet, Icons.Outlined.AccountBalanceWallet, "nav_transactions"),
+    AI_ADVISOR("ai_advisor", "AI Coach", Icons.Filled.AutoAwesome, Icons.Outlined.AutoAwesome, "nav_ai_advisor"),
     BUDGET("budget", "Budget", Icons.Filled.PieChart, Icons.Outlined.PieChart, "nav_budget"),
-    BILLS("bills", "Bills", Icons.Filled.Receipt, Icons.Outlined.Receipt, "nav_bills"),
     MORE("more", "More", Icons.Filled.MoreHoriz, Icons.Outlined.MoreHoriz, "nav_more")
 }
 
@@ -97,7 +102,8 @@ enum class OverlayScreen {
     PRO_UPGRADE,
     FINANCIAL_OVERVIEW,
     SMART_NOTIFICATIONS,
-    GAMIFICATION
+    GAMIFICATION,
+    AXIO_SMS_SYNC
 }
 
 @Composable
@@ -231,13 +237,10 @@ fun MainNavGraph(
                     )
                 }
                 OverlayScreen.PROFILE_SYNC -> {
-                    AuthScreen(
+                    UserProfileScreen(
                         state = uiState,
                         onBackClick = { activeOverlay = OverlayScreen.NONE },
                         onUpdateName = { newName -> viewModel.updateProfileName(newName) },
-                        onSignInWithEmail = { email, pass, onResult -> viewModel.signInWithEmail(email, pass, onResult) },
-                        onSignUpWithEmail = { email, pass, name, onResult -> viewModel.signUpWithEmail(email, pass, name, onResult) },
-                        onSignInWithGoogle = { name, email, onResult -> viewModel.signInWithGoogle(name, email, onResult) },
                         onSignOut = {
                             prefs.edit().putBoolean("has_completed_auth", false).apply()
                             hasCompletedAuth = false
@@ -300,11 +303,11 @@ fun MainNavGraph(
                     SavingsGoalsScreen(
                         state = uiState,
                         onBackClick = { activeOverlay = OverlayScreen.NONE },
-                        onAddGoalClick = { title, emoji, targetAmount, targetDate, monthlyTarget, colorHex ->
-                            viewModel.addSavingsGoal(title, emoji, targetAmount, targetDate, monthlyTarget, colorHex)
+                        onAddGoalClick = { goal ->
+                            viewModel.addSavingsGoal(goal)
                         },
                         onDepositClick = { goalId, amount ->
-                            viewModel.depositToSavingsGoal(goalId, amount)
+                            viewModel.addMoneyToSavingsGoal(goalId, amount)
                         },
                         onDeleteGoalClick = { goalId ->
                             viewModel.deleteSavingsGoal(goalId)
@@ -376,11 +379,14 @@ fun MainNavGraph(
                     ProUpgradeScreen(
                         state = uiState,
                         onBackClick = { activeOverlay = OverlayScreen.NONE },
-                        onUpgradeToPro = { tier ->
-                            viewModel.upgradeToPro(tier)
+                        onSubmitUtrRequest = { utr, ref, plan, amount, cb ->
+                            viewModel.submitUtrPaymentRequest(utr, ref, plan, amount, cb)
                         },
-                        onDowngradeToFree = {
-                            viewModel.downgradeToFree()
+                        onApproveUtrRequest = { req, cb ->
+                            viewModel.approveUtrPaymentRequest(req, cb)
+                        },
+                        onRejectUtrRequest = { reqId, userId, cb ->
+                            viewModel.rejectUtrPaymentRequest(reqId, userId, cb)
                         }
                     )
                 }
@@ -410,6 +416,17 @@ fun MainNavGraph(
                         onLogNoSpendDay = { viewModel.logNoSpendDay() }
                     )
                 }
+                OverlayScreen.AXIO_SMS_SYNC -> {
+                    AxioSmsSyncScreen(
+                        state = uiState,
+                        onBackClick = { activeOverlay = OverlayScreen.NONE },
+                        onAddSyncedTransactions = { list ->
+                            list.forEach { item ->
+                                viewModel.addTransaction(item)
+                            }
+                        }
+                    )
+                }
                 else -> {}
             }
         } else {
@@ -419,17 +436,18 @@ fun MainNavGraph(
                     DashboardScreen(
                         state = uiState,
                         onAddExpenseClick = { activeOverlay = OverlayScreen.ADD_EXPENSE },
-                        onAddBillClick = { activeTab = BottomTab.BILLS },
+                        onAddBillClick = { activeOverlay = OverlayScreen.ADD_BILL },
                         onAddIncomeClick = { activeOverlay = OverlayScreen.ADD_INCOME },
                         onOpenProfileClick = { activeOverlay = OverlayScreen.PROFILE_SYNC },
                         onCategoryClick = { activeOverlay = OverlayScreen.REPORTS },
                         onToggleBillPaid = { id, paid -> viewModel.toggleBillPaid(id, paid) },
                         onViewAllTransactions = { activeTab = BottomTab.TRANSACTIONS },
-                        onViewAllBills = { activeTab = BottomTab.BILLS },
+                        onViewAllBills = { activeOverlay = OverlayScreen.RECURRING_TRANSACTIONS },
                         onOpenSavingsGoalsClick = { activeOverlay = OverlayScreen.SAVINGS_GOALS },
                         onOpenNotificationsClick = { activeOverlay = OverlayScreen.SMART_NOTIFICATIONS },
                         onOpenGamificationClick = { activeOverlay = OverlayScreen.GAMIFICATION },
-                        onOpenOverviewClick = { activeOverlay = OverlayScreen.FINANCIAL_OVERVIEW }
+                        onOpenOverviewClick = { activeOverlay = OverlayScreen.FINANCIAL_OVERVIEW },
+                        onOpenAxioSmsSyncClick = { activeOverlay = OverlayScreen.AXIO_SMS_SYNC }
                     )
                 }
                 BottomTab.TRANSACTIONS -> {
@@ -440,23 +458,18 @@ fun MainNavGraph(
                         onDuplicateTransaction = { item -> viewModel.duplicateTransaction(item) }
                     )
                 }
+                BottomTab.AI_ADVISOR -> {
+                    AiMoneyAdvisorScreen(
+                        state = uiState,
+                        onBackClick = { activeTab = BottomTab.HOME }
+                    )
+                }
                 BottomTab.BUDGET -> {
                     BudgetScreen(
                         state = uiState,
                         onBackClick = { activeTab = BottomTab.HOME },
                         onUpdateMonthlyBudget = { b -> viewModel.updateMonthlyBudget(b) },
                         onUpdateCategoryBudget = { cat, lim -> viewModel.updateCategoryBudget(cat, lim) }
-                    )
-                }
-                BottomTab.BILLS -> {
-                    BillsScreen(
-                        state = uiState,
-                        onBackClick = { activeTab = BottomTab.HOME },
-                        onToggleBillPaid = { id, paid -> viewModel.toggleBillPaid(id, paid) },
-                        onAddBillClick = { title, amount, dueDate, dueDaysText, category, billType ->
-                            viewModel.addBill(title, amount, dueDate, dueDaysText, category, billType)
-                        },
-                        onToggleAutoReminders = { enabled -> viewModel.toggleAutoReminders(enabled) }
                     )
                 }
                 BottomTab.MORE -> {
@@ -479,6 +492,7 @@ fun MainNavGraph(
                         onOpenOverviewClick = { activeOverlay = OverlayScreen.FINANCIAL_OVERVIEW },
                         onOpenNotificationsClick = { activeOverlay = OverlayScreen.SMART_NOTIFICATIONS },
                         onOpenGamificationClick = { activeOverlay = OverlayScreen.GAMIFICATION },
+                        onOpenAxioSmsSyncClick = { activeOverlay = OverlayScreen.AXIO_SMS_SYNC },
                         onToggleAutoReminders = { enabled -> viewModel.toggleAutoReminders(enabled) },
                         onToggleOfflineMode = { enabled -> viewModel.toggleOfflineMode(enabled) }
                     )
